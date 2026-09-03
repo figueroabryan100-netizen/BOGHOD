@@ -1,0 +1,1228 @@
+/*
+===========================================================
+NEXUS CRYPT V4
+AI TRADING COMMAND CENTER
+styles.css
+===========================================================
+*/
+
+:root {
+  --bg: #05070b;
+  --panel: #0b1018;
+  --panel-2: #0f1621;
+  --panel-3: #131c29;
+
+  --line: rgba(120, 150, 180, 0.18);
+  --line-bright: rgba(100, 180, 255, 0.35);
+
+  --text: #e8f2ff;
+  --muted: #8291a5;
+
+  --cyan: #37d9ff;
+  --blue: #4b8dff;
+  --green: #39e58c;
+  --yellow: #ffd166;
+  --red: #ff5570;
+
+  --shadow:
+    0 12px 40px rgba(0, 0, 0, 0.35);
+
+  --radius: 16px;
+}
+
+
+/* ========================================================
+   RESET
+======================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--bg);
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(55, 217, 255, 0.10),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      #070a10 0%,
+      #05070b 100%
+    );
+
+  color: var(--text);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* ========================================================
+   APP
+======================================================== */
+
+.nexus-app {
+  width: min(1400px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+
+  position: relative;
+}
+
+
+/* ========================================================
+   HEADER
+======================================================== */
+
+.nexus-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+
+  gap: 24px;
+
+  padding-bottom: 24px;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  min-width: 0;
+}
+
+.nexus-kicker {
+  color: var(--cyan);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  letter-spacing: 0.20em;
+
+  margin-bottom: 8px;
+}
+
+.nexus-header h1 {
+  font-size: clamp(24px, 4vw, 42px);
+
+  line-height: 1.05;
+
+  letter-spacing: -0.03em;
+
+  font-weight: 800;
+}
+
+.nexus-header p {
+  color: var(--muted);
+
+  margin-top: 10px;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  letter-spacing: 0.14em;
+}
+
+
+/* ========================================================
+   SYSTEM STATUS
+======================================================== */
+
+.system-status {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  flex-wrap: wrap;
+
+  justify-content: flex-end;
+
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background: var(--green);
+
+  box-shadow:
+    0 0 10px rgba(57, 229, 140, 0.8);
+
+  animation:
+    nexusPulse 1.8s infinite;
+}
+
+@keyframes nexusPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+}
+
+
+/* ========================================================
+   COMMAND STRIP
+======================================================== */
+
+.command-strip {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin: 18px 0;
+}
+
+.stat-card {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(19, 28, 41, 0.95),
+      rgba(8, 12, 18, 0.95)
+    );
+
+  border: 1px solid var(--line);
+
+  border-radius: var(--radius);
+
+  padding: 18px;
+
+  box-shadow: var(--shadow);
+
+  position: relative;
+
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--cyan),
+      transparent
+    );
+
+  opacity: 0.4;
+}
+
+.stat-card span {
+  display: block;
+
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+
+  letter-spacing: 0.12em;
+
+  margin-bottom: 8px;
+}
+
+.stat-card strong {
+  display: block;
+
+  font-size: 24px;
+
+  letter-spacing: -0.02em;
+}
+
+
+/* ========================================================
+   PANELS
+======================================================== */
+
+.panel {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(15, 22, 33, 0.96),
+      rgba(7, 11, 17, 0.96)
+    );
+
+  border: 1px solid var(--line);
+
+  border-radius: var(--radius);
+
+  padding: 20px;
+
+  margin-bottom: 16px;
+
+  box-shadow: var(--shadow);
+
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 16px;
+
+  margin-bottom: 18px;
+}
+
+.panel-kicker {
+  color: var(--cyan);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+
+  letter-spacing: 0.16em;
+}
+
+.panel h2 {
+  font-size: 18px;
+
+  margin-top: 5px;
+
+  letter-spacing: -0.01em;
+}
+
+
+/* ========================================================
+   MARKET
+======================================================== */
+
+.market-panel {
+  border-color:
+    rgba(55, 217, 255, 0.20);
+}
+
+.signal-badge {
+  border: 1px solid
+    rgba(57, 229, 140, 0.35);
+
+  background:
+    rgba(57, 229, 140, 0.08);
+
+  color: var(--green);
+
+  border-radius: 999px;
+
+  padding: 7px 13px;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.10em;
+}
+
+.market-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.market-value {
+  padding: 14px;
+
+  background:
+    rgba(5, 8, 13, 0.65);
+
+  border: 1px solid var(--line);
+
+  border-radius: 12px;
+}
+
+.market-value span {
+  display: block;
+
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 9px;
+
+  letter-spacing: 0.10em;
+
+  margin-bottom: 7px;
+}
+
+.market-value strong {
+  display: block;
+
+  font-size: 17px;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+}
+
+
+/* ========================================================
+   AGENTS
+======================================================== */
+
+.agent-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.agent-card {
+  position: relative;
+
+  padding: 16px;
+
+  min-height: 118px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(19, 28, 41, 0.95),
+      rgba(7, 11, 17, 0.95)
+    );
+
+  border: 1px solid var(--line);
+
+  border-radius: 13px;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.agent-card:hover {
+  transform: translateY(-2px);
+
+  border-color:
+    var(--line-bright);
+
+  box-shadow:
+    0 10px 30px
+    rgba(55, 217, 255, 0.08);
+}
+
+.agent-card::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+
+  width: 2px;
+
+  background: var(--cyan);
+
+  opacity: 0.65;
+
+  border-radius: 4px;
+}
+
+.agent-name {
+  display: block;
+
+  color: var(--text);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 15px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+}
+
+.agent-role {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  letter-spacing: 0.10em;
+
+  margin-top: 5px;
+
+  margin-bottom: 15px;
+}
+
+.agent-card strong {
+  display: block;
+
+  color: var(--green);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* ========================================================
+   CYCLE
+======================================================== */
+
+.cycle-counter {
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+
+  letter-spacing: 0.1em;
+}
+
+.cycle-counter strong {
+  color: var(--cyan);
+
+  margin-left: 6px;
+
+  font-size: 16px;
+}
+
+
+/* ========================================================
+   POSITION
+======================================================== */
+
+.position-status {
+  color: var(--yellow);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+}
+
+.position-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.position-grid > div {
+  padding: 16px;
+
+  background:
+    rgba(5, 8, 13, 0.65);
+
+  border: 1px solid var(--line);
+
+  border-radius: 12px;
+}
+
+.position-grid span {
+  display: block;
+
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 9px;
+
+  letter-spacing: 0.1em;
+
+  margin-bottom: 7px;
+}
+
+.position-grid strong {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 15px;
+}
+
+
+/* ========================================================
+   TRADE CONTROLS
+======================================================== */
+
+.trade-controls {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-top: 16px;
+}
+
+.trade-button {
+  border: 1px solid var(--line);
+
+  border-radius: 10px;
+
+  padding: 13px 10px;
+
+  color: var(--text);
+
+  background:
+    rgba(19, 28, 41, 0.8);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.trade-button:hover {
+  transform: translateY(-1px);
+}
+
+.trade-button:active {
+  transform: translateY(1px);
+}
+
+.buy-button {
+  color: var(--green);
+
+  border-color:
+    rgba(57, 229, 140, 0.35);
+}
+
+.buy-button:hover {
+  background:
+    rgba(57, 229, 140, 0.10);
+}
+
+.sell-button {
+  color: var(--red);
+
+  border-color:
+    rgba(255, 85, 112, 0.35);
+}
+
+.sell-button:hover {
+  background:
+    rgba(255, 85, 112, 0.10);
+}
+
+.close-button {
+  color: var(--yellow);
+}
+
+.pause-button {
+  color: var(--cyan);
+}
+
+
+/* ========================================================
+   PIPELINE
+======================================================== */
+
+.pipeline {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+}
+
+.pipeline-node {
+  min-width: 130px;
+
+  text-align: center;
+
+  padding: 13px 16px;
+
+  background:
+    rgba(5, 8, 13, 0.85);
+
+  border: 1px solid
+    rgba(55, 217, 255, 0.20);
+
+  border-radius: 10px;
+
+  color: var(--cyan);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+}
+
+.pipeline-arrow {
+  color: var(--muted);
+
+  font-size: 18px;
+}
+
+
+/* ========================================================
+   LEDGER
+======================================================== */
+
+.ledger {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  max-height: 420px;
+
+  overflow-y: auto;
+
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    var(--panel-3)
+    transparent;
+}
+
+.ledger-entry {
+  display: grid;
+
+  grid-template-columns:
+    80px
+    70px
+    150px
+    1fr;
+
+  gap: 12px;
+
+  align-items: center;
+
+  padding: 11px 12px;
+
+  background:
+    rgba(5, 8, 13, 0.60);
+
+  border: 1px solid var(--line);
+
+  border-radius: 9px;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 10px;
+}
+
+.ledger-time {
+  color: var(--muted);
+}
+
+.ledger-entry strong {
+  color: var(--cyan);
+}
+
+.ledger-entry span {
+  color: var(--text);
+}
+
+.ledger-entry small {
+  color: var(--muted);
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* ========================================================
+   FOOTER
+======================================================== */
+
+.nexus-footer {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 18px 4px 4px;
+
+  color: var(--muted);
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 9px;
+
+  letter-spacing: 0.10em;
+}
+
+.nexus-footer strong {
+  color: var(--cyan);
+}
+
+
+/* ========================================================
+   SPECIAL STATES
+======================================================== */
+
+.nexus-green {
+  color: var(--green);
+}
+
+[data-sentiment] {
+  color: var(--yellow);
+}
+
+[data-liquidity] {
+  color: var(--cyan);
+}
+
+
+/* ========================================================
+   SCROLLBAR
+======================================================== */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--panel-3);
+
+  border-radius: 10px;
+}
+
+
+/* ========================================================
+   MOBILE
+======================================================== */
+
+@media (max-width: 900px) {
+
+  .nexus-app {
+    padding: 16px;
+  }
+
+  .nexus-header {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+  .system-status {
+    justify-content: flex-start;
+  }
+
+  .command-strip {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .market-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .agent-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .position-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .trade-controls {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .ledger-entry {
+    grid-template-columns:
+      65px
+      60px
+      1fr;
+  }
+
+  .ledger-entry small {
+    grid-column: 1 / -1;
+  }
+
+}
+
+
+/* ========================================================
+   SMALL PHONE
+======================================================== */
+
+@media (max-width: 520px) {
+
+  .nexus-app {
+    padding: 10px;
+  }
+
+  .nexus-header h1 {
+    font-size: 25px;
+  }
+
+  .nexus-header p {
+    font-size: 9px;
+  }
+
+  .command-strip {
+    gap: 7px;
+  }
+
+  .stat-card {
+    padding: 13px;
+  }
+
+  .stat-card strong {
+    font-size: 18px;
+  }
+
+  .panel {
+    padding: 14px;
+
+    margin-bottom: 10px;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+  }
+
+  .panel h2 {
+    font-size: 15px;
+  }
+
+  .market-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .market-value {
+    padding: 11px;
+  }
+
+  .market-value strong {
+    font-size: 13px;
+  }
+
+  .agent-grid {
+    grid-template-columns:
+      1fr 1fr;
+
+    gap: 7px;
+  }
+
+  .agent-card {
+    min-height: 105px;
+
+    padding: 12px;
+  }
+
+  .agent-name {
+    font-size: 12px;
+  }
+
+  .agent-role {
+    font-size: 8px;
+  }
+
+  .pipeline {
+    flex-direction: column;
+  }
+
+  .pipeline-node {
+    width: 100%;
+  }
+
+  .pipeline-arrow {
+    transform: rotate(90deg);
+  }
+
+  .position-grid {
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .trade-controls {
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .nexus-footer {
+    flex-direction: column;
+
+    align-items: center;
+
+    text-align: center;
+  }
+
+}
+
+
+/* ========================================================
+   REDUCED MOTION
+======================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+
+    transition: none !important;
+
+    scroll-behavior: auto !important;
+  }
+
+}
+
+/* ========================================================
+   ADDED — LIVE BRIDGE INTEGRATION
+   (agent state classes, connection banner, pair tabs)
+======================================================== */
+
+.connection-banner {
+  background: rgba(255, 85, 112, 0.12);
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 12px;
+  margin: 12px 0;
+}
+
+.connection-banner code {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+.pair-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 18px;
+  flex-wrap: wrap;
+}
+
+.pair-tab {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+
+.pair-tab:hover {
+  border-color: var(--line-bright);
+  color: var(--text);
+}
+
+.pair-tab.active {
+  background: var(--panel-3);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.manual-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+/* Agent card state coloring — these classes are added/removed by
+   app.js's renderAgents(); previously unstyled, so cards never
+   visually reacted to a signal change. */
+
+.agent-card.state-buy {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green) inset, var(--shadow);
+}
+
+.agent-card.state-buy strong {
+  color: var(--green);
+}
+
+.agent-card.state-sell {
+  border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red) inset, var(--shadow);
+}
+
+.agent-card.state-sell strong {
+  color: var(--red);
+}
+
+.agent-card.state-blocked {
+  border-color: var(--red);
+  background: rgba(255, 85, 112, 0.08);
+}
+
+.agent-card.state-blocked strong {
+  color: var(--red);
+}
+
+.agent-card.state-hold strong {
+  color: var(--yellow);
+}
+
+.agent-card.state-na {
+  opacity: 0.55;
+}
+
+.agent-card.state-na strong {
+  color: var(--muted);
+}
+
+.agent-card small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+#mode-dot.state-live {
+  background: var(--green);
+  box-shadow: 0 0 10px rgba(57, 229, 140, 0.8);
+}
+
+#mode-dot.state-offline {
+  background: var(--red);
+  box-shadow: 0 0 10px rgba(255, 85, 112, 0.8);
+  animation: none;
+}
