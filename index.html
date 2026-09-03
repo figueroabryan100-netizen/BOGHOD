@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b10">
+<title>NEXUS CRYPT V4</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- =====================================================
+     NEXUS COMMAND CENTER — LIVE (kalshi-bridge.js backed)
+====================================================== -->
+<main id="nexusCommandCenter" class="nexus-app">
+
+  <!-- HEADER -->
+  <header class="nexus-header">
+    <div class="brand">
+      <div class="nexus-kicker">NEXUS CRYPT V4</div>
+      <h1>AI TRADING COMMAND CENTER</h1>
+      <p>LIVE — MULTI-AGENT KALSHI SYSTEM</p>
+    </div>
+    <div class="system-status">
+      <span id="mode-dot" class="status-dot"></span>
+      <span id="mode-label">CONNECTING</span>
+      <span>8 AGENTS</span>
+      <span id="last-cycle">—</span>
+    </div>
+  </header>
+
+  <!-- CONNECTION BANNER (hidden unless bridge unreachable) -->
+  <div id="connection-banner" class="connection-banner" hidden>
+    Bridge unreachable at <code id="bridge-url-display"></code> — check it's running and CORS-reachable from this page.
+  </div>
+
+  <!-- ===================================================
+       COMMAND STRIP
+  ==================================================== -->
+  <section class="command-strip">
+    <div class="stat-card">
+      <span>SYSTEM VITALITY</span>
+      <strong id="vitality">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>CONSENSUS / CONFIDENCE</span>
+      <strong id="consensus" class="nexus-green">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>BALANCE</span>
+      <strong id="equity">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>REALIZED P&L (TODAY)</span>
+      <strong id="pnl">—</strong>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       PAIR SELECTOR
+  ==================================================== -->
+  <section class="pair-tabs" id="pair-tabs">
+    <!-- populated by app.js from CONFIG.pairs -->
+  </section>
+
+  <!-- ===================================================
+       MARKET
+  ==================================================== -->
+  <section class="panel market-panel">
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">TIDAL / MARKET STREAM</span>
+        <h2 id="market-title">MARKET</h2>
+      </div>
+      <div id="signal" class="signal-badge">—</div>
+    </div>
+    <div class="market-grid">
+      <div class="market-value">
+        <span>PRICE</span>
+        <strong id="price">—</strong>
+      </div>
+      <div class="market-value">
+        <span>EDGE (YES)</span>
+        <strong id="edge-yes">—</strong>
+      </div>
+      <div class="market-value">
+        <span>EDGE (NO)</span>
+        <strong id="edge-no">—</strong>
+      </div>
+      <div class="market-value">
+        <span>CONFIDENCE</span>
+        <strong id="confidence-score">—</strong>
+      </div>
+      <div class="market-value">
+        <span>OPEN INTEREST</span>
+        <strong id="volume">—</strong>
+      </div>
+      <div class="market-value">
+        <span>SENTIMENT</span>
+        <strong id="sentiment">—</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       AGENT FLOOR
+  ==================================================== -->
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">AGENT SWARM</span>
+        <h2>8-AGENT CONSENSUS FLOOR</h2>
+      </div>
+      <div class="cycle-counter">CYCLE <strong id="cycles">0</strong></div>
+    </div>
+    <div class="agent-grid">
+
+      <article class="agent-card" data-agent="VESKA">
+        <span class="agent-name">VESKA</span>
+        <span class="agent-role">EXECUTION</span>
+        <strong data-status>READY</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="NORO">
+        <span class="agent-name">NORO</span>
+        <span class="agent-role">FAIR VALUE</span>
+        <strong data-status>READY</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="LUMEN">
+        <span class="agent-name">LUMEN</span>
+        <span class="agent-role">SENTIMENT</span>
+        <strong data-status>READY</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="TIDAL">
+        <span class="agent-name">TIDAL</span>
+        <span class="agent-role">MARKET SCANNER</span>
+        <strong data-status>SCANNING</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="ZEPHR">
+        <span class="agent-name">ZEPHR</span>
+        <span class="agent-role">LIQUIDITY</span>
+        <strong data-status>READY</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="RUNE">
+        <span class="agent-name">RUNE</span>
+        <span class="agent-role">RISK GATE</span>
+        <strong data-status>GUARDING</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="OKAPI">
+        <span class="agent-name">OKAPI</span>
+        <span class="agent-role">EXPOSURE</span>
+        <strong data-status>MONITORING</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+      <article class="agent-card" data-agent="MARIN">
+        <span class="agent-name">MARIN</span>
+        <span class="agent-role">LIQUIDATION</span>
+        <strong data-status>STANDBY</strong>
+        <small data-detail>Waiting for bridge...</small>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ===================================================
+       POSITION
+  ==================================================== -->
+  <section class="panel position-panel">
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">VESKA / POSITION</span>
+        <h2>LIVE POSITION</h2>
+      </div>
+      <div id="position" class="position-status">FLAT</div>
+    </div>
+    <div class="position-grid">
+      <div>
+        <span>POSITION</span>
+        <strong id="current-position">FLAT</strong>
+      </div>
+      <div>
+        <span>ENTRY</span>
+        <strong id="entry">—</strong>
+      </div>
+      <div>
+        <span>CURRENT</span>
+        <strong id="current-price">—</strong>
+      </div>
+      <div>
+        <span>UNREALIZED P&L</span>
+        <strong id="unrealized">—</strong>
+      </div>
+    </div>
+
+    <!-- MANUAL OVERRIDE — sends a real order to the bridge. Confirms before firing. -->
+    <div class="trade-controls">
+      <button id="buy" type="button" class="trade-button buy-button">MANUAL BUY</button>
+      <button id="sell" type="button" class="trade-button sell-button">MANUAL SELL</button>
+      <button id="close" type="button" class="trade-button close-button">CLOSE POSITION</button>
+      <button id="pause" type="button" class="trade-button pause-button">PAUSE POLLING</button>
+    </div>
+    <p class="manual-note">Manual buttons call the bridge directly with real funds. Every click asks for confirmation first.</p>
+  </section>
+
+  <!-- ===================================================
+       ARCHITECTURE
+  ==================================================== -->
+  <section class="panel architecture-panel">
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">NEXUS PIPELINE</span>
+        <h2>DECISION ARCHITECTURE</h2>
+      </div>
+    </div>
+    <div class="pipeline">
+      <div class="pipeline-node">KALSHI-BRIDGE.JS</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">CONFIDENCE MODEL</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">FREQTRADE STRATEGY</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">RISK GATE ($0.10/trade, $7/day)</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">KALSHI ORDER API</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">NEXUS (this display)</div>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       LEDGER
+  ==================================================== -->
+  <section class="panel ledger-panel">
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">NEXUS EVENT STREAM</span>
+        <h2>LIVE LEDGER</h2>
+      </div>
+    </div>
+    <div id="ledger" class="ledger">
+      <div class="ledger-entry">
+        <span class="ledger-time">—</span>
+        <strong>NEXUS</strong>
+        <span>INITIALIZING</span>
+        <small>Connecting to bridge...</small>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="nexus-footer">
+    <span>NEXUS CRYPT V4</span>
+    <span id="footer-mode">LIVE / REAL MONEY</span>
+    <span>CYCLE <strong id="cycle">0</strong></span>
+  </footer>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
+I'm 
