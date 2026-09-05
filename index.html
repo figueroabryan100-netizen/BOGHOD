@@ -24,7 +24,6 @@
   .loading{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:999}
   .loading.off{display:none}
   
-  /* Modal */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:1000;display:none;justify-content:center;align-items:center;padding:20px}
   .modal.on{display:flex}
   .modal-box{background:#111;border:1px solid #333;padding:20px;width:100%;max-width:350px;max-height:80vh;overflow-y:auto}
@@ -35,6 +34,13 @@
   .form-input:focus{outline:none;border-color:#0f0}
   .form-select{width:100%;background:#000;border:1px solid #333;color:#fff;padding:10px;font-family:monospace;font-size:12px}
   .btn-full{width:100%;margin:4px 0}
+  
+  .feed-tag{display:inline-block;padding:2px 6px;margin:0 2px 4px 0;font-size:9px;border:1px solid #333}
+  .feed-tag.on{border-color:#0f0;color:#0f0}
+  .feed-tag.off{color:#666}
+  
+  .mkt-chip{display:inline-block;padding:3px 8px;margin:0 4px 4px 0;font-size:10px;border:1px solid #333;cursor:pointer}
+  .mkt-chip.on{border-color:#0f0;color:#0f0}
 </style>
 </head>
 <body>
@@ -68,6 +74,9 @@
         <option value="KXBTC15M">BTC 15M</option>
         <option value="KXETH15M">ETH 15M</option>
         <option value="KXSOL15M">SOL 15M</option>
+        <option value="KXXRP15M">XRP 15M</option>
+        <option value="KXDOGE15M">DOGE 15M</option>
+        <option value="KXBTCD">BTC Hourly</option>
       </select>
     </div>
     <div class="form-row">
@@ -81,6 +90,10 @@
     <div class="form-row">
       <label class="form-label">Position Size $</label>
       <input class="form-input" id="inSize" type="number" value="100" step="10">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Fee Rate %</label>
+      <input class="form-input" id="inFee" type="number" value="0.5" step="0.1">
     </div>
     <div class="form-row" style="display:flex;gap:8px">
       <button class="btn btn-full green" onclick="saveCfg()">Save</button>
@@ -98,11 +111,14 @@
 
 <div class="grid">
   <div class="box">
-    <h3>Chart</h3>
+    <h3>Market <span id="countdown" style="float:right;color:#666">--:--</span></h3>
+    <div id="feedTags"></div>
+    <div id="mktChips"></div>
     <canvas id="c1"></canvas>
   </div>
   <div class="box">
-    <h3>Agents</h3>
+    <h3>Sentiment & Agents</h3>
+    <div id="sentimentBars"></div>
     <div id="agents"></div>
   </div>
   <div class="box">
@@ -110,7 +126,8 @@
     <div id="trades"></div>
   </div>
   <div class="box">
-    <h3>Stats</h3>
+    <h3>Orderbook & Stats</h3>
+    <div id="orderbook"></div>
     <div id="stats"></div>
   </div>
 </div>
@@ -118,38 +135,50 @@
 <div style="display:flex;justify-content:center;padding:12px">
   <button class="btn green" onclick="start()" id="btnStart">START</button>
   <button class="btn" onclick="openCfg()">CONFIG</button>
+  <button class="btn" onclick="syncData()">SYNC</button>
   <button class="btn red" onclick="stop()">STOP</button>
 </div>
 
 <script>
 
+// ==================== STATE ====================
+
 var trading = false;
+var live = false;
 var pnl = 0;
 var wins = 0;
 var losses = 0;
-var data = [];
+var agents = [];
+var trades = [];
+var positions = [];
+var marketData = [];
 var ctx;
-var config = {sl:2.5,tp:5.0,fee:0.5,size:100,mode:'demo',mkt:'KXBTC15M'};
+var config = {sl:2.5,tp:5.0,fee:0.5,size:100,mode:'demo',mkt:'KXBTC15M',keyId:'',key:''};
+var feeds = {cg:false,bn:false,xm:false,ks:false};
+var sentiment = {news:0,social:0,chain:0};
+var ws = null;
+var startTime = Date.now();
+
+var STRATS = ['momentum','meanrev','arbitrage','scalp','swing','sentiment','ensemble'];
+
+// ==================== INIT ====================
 
 function init() {
   try {
-    for (var i = 0; i < 50; i++) {
-      data.push(50 + Math.random() * 10 - 5);
-    }
-    
-    var c = document.getElementById('c1');
-    c.width = c.offsetWidth;
-    c.height = 90;
-    ctx = c.getContext('2d');
-    
-    draw();
+    spawnAgents();
+    genData();
+    setupChart();
+    renderFeeds();
+    renderMkts();
+    renderSentiment();
+    renderOrderbook();
     updateStats();
     
     var bar = document.getElementById('bar');
     var load = document.getElementById('load');
     var p = 0;
     var iv = setInterval(function() {
-      p += 25;
+      p += 20;
       bar.style.width = p + '%';
       if (p >= 100) {
         clearInterval(iv);
@@ -162,70 +191,166 @@ function init() {
   }
 }
 
-function draw() {
-  if (!ctx) return;
+function spawnAgents() {
+  for (var i = 0; i < 100000; i++) {
+    agents.push({
+      id: i,
+      name: 'A-' + String(i).padStart(5, '0'),
+      strat: STRATS[i % STRATS.length],
+      conf: Math.random(),
+      intel: 0.1 + Math.random() * 0.9,
+      act: 'hold',
+      trades: 0,
+      pnl: 0
+    });
+  }
+}
+
+function genData() {
+  var p = 52;
+  var now = Date.now();
+  for (var i = 0; i < 60; i++) {
+    var cyc = Math.sin(i / 8) * 1.5;
+    var noise = (Math.random() - 0.5) * 1.0;
+    var chg = (cyc + noise) / 100;
+    p = Math.max(5, Math.min(95, p * (1 + chg)));
+    marketData.push({t: now - (60 - i) * 15000, p: p});
+  }
+}
+
+function setupChart() {
+  var c = document.getElementById('c1');
+  c.width = c.offsetWidth;
+  c.height = 90;
+  ctx = c.getContext('2d');
+}
+
+// ==================== RENDERING ====================
+
+function drawChart() {
+  if (!ctx || marketData.length < 2) return;
   var c = document.getElementById('c1');
   var w = c.width, h = c.height;
   ctx.clearRect(0, 0, w, h);
   
+  var ps = marketData.map(function(d) { return d.p; });
+  var mn = Math.min.apply(null, ps) * 0.998;
+  var mx = Math.max.apply(null, ps) * 1.002;
+  var rng = mx - mn;
+  
   ctx.strokeStyle = '#0f0';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  for (var i = 0; i < data.length; i++) {
-    var x = (i / (data.length - 1)) * w;
-    var y = h - ((data[i] - 40) / 20) * h;
+  for (var i = 0; i < marketData.length; i++) {
+    var x = (i / (marketData.length - 1)) * w;
+    var y = h - ((marketData[i].p - mn) / rng) * h;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.stroke();
+  
+  var lp = marketData[marketData.length - 1].p;
+  var ly = h - ((lp - mn) / rng) * h;
+  ctx.fillStyle = '#0f0';
+  ctx.beginPath();
+  ctx.arc(w - 6, ly, 3, 0, Math.PI * 2);
+  ctx.fill();
 }
 
-function tick() {
-  if (!trading) return;
-  
-  var last = data[data.length - 1];
-  var next = last + (Math.random() - 0.5) * 2;
-  data.push(next);
-  data.shift();
-  
-  if (Math.random() > 0.7) {
-    var change = (Math.random() - 0.4) * 10;
-    pnl += change;
-    if (change > 0) wins++; else losses++;
-    updatePnl();
-    addTrade(change);
+function renderFeeds() {
+  var d = document.getElementById('feedTags');
+  var f = [
+    {k:'cg',l:'CG'},{k:'bn',l:'BN'},{k:'xm',l:'XM'},{k:'ks',l:'KS'}
+  ];
+  d.innerHTML = '';
+  for (var i = 0; i < f.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'feed-tag ' + (feeds[f[i].k] ? 'on' : 'off');
+    div.textContent = f[i].l;
+    d.appendChild(div);
   }
-  
-  draw();
-  updateAgents();
 }
 
-function updatePnl() {
-  var el = document.getElementById('pnl');
-  el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
-  el.className = 'pnl' + (pnl < 0 ? ' red' : '');
+function renderMkts() {
+  var d = document.getElementById('mktChips');
+  var mkts = {KXBTC15M:'BTC',KXETH15M:'ETH',KXSOL15M:'SOL',KXXRP15M:'XRP',KXDOGE15M:'DOGE',KXBTCD:'BTC1H'};
+  d.innerHTML = '';
+  for (var k in mkts) {
+    var div = document.createElement('div');
+    div.className = 'mkt-chip ' + (k === config.mkt ? 'on' : '');
+    div.textContent = mkts[k];
+    div.onclick = (function(key) { return function() { selectMkt(key); }; })(k);
+    d.appendChild(div);
+  }
 }
 
-function updateAgents() {
+function renderSentiment() {
+  var d = document.getElementById('sentimentBars');
+  var sents = [
+    {l:'News',v:sentiment.news},{l:'Social',v:sentiment.social},{l:'Chain',v:sentiment.chain}
+  ];
+  d.innerHTML = '';
+  for (var i = 0; i < sents.length; i++) {
+    var s = sents[i];
+    var pct = Math.max(0, Math.min(100, 50 + s.v * 50));
+    var div = document.createElement('div');
+    div.className = 'row';
+    div.innerHTML = '<span>' + s.l + '</span>' +
+      '<div style="flex:1;height:4px;background:#111;margin:0 8px">' +
+        '<div style="width:' + pct + '%;height:100%;background:#0f0"></div>' +
+      '</div>' +
+      '<span>' + s.v.toFixed(2) + '</span>';
+    d.appendChild(div);
+  }
+}
+
+function renderAgents() {
   var d = document.getElementById('agents');
-  var html = '';
-  for (var i = 0; i < 5; i++) {
-    var n = 'A-' + String(Math.floor(Math.random() * 100000)).padStart(5, '0');
-    var act = ['BUY', 'SELL', 'HOLD'][Math.floor(Math.random() * 3)];
-    var col = act === 'BUY' ? 'green' : act === 'SELL' ? 'red' : 'muted';
-    html += '<div class="row"><span>' + n + '</span><span class="' + col + '">' + act + '</span></div>';
+  var active = agents.filter(function(a) { return a.act !== 'hold'; }).slice(0, 5);
+  if (active.length === 0) {
+    d.innerHTML = '<div class="muted" style="text-align:center;padding:20px">Waiting...</div>';
+    return;
   }
-  d.innerHTML = html;
+  d.innerHTML = '';
+  for (var i = 0; i < active.length; i++) {
+    var ag = active[i];
+    var col = ag.act === 'buy' ? 'green' : ag.act === 'sell' ? 'red' : 'muted';
+    var div = document.createElement('div');
+    div.className = 'row';
+    div.innerHTML = '<span>' + ag.name + ' (' + ag.strat + ')</span><span class="' + col + '">' + ag.act.toUpperCase() + '</span>';
+    d.appendChild(div);
+  }
 }
 
-function addTrade(amt) {
+function renderTrades() {
   var d = document.getElementById('trades');
-  var div = document.createElement('div');
-  div.className = 'row';
-  var col = amt >= 0 ? 'green' : 'red';
-  div.innerHTML = '<span>' + new Date().toLocaleTimeString() + '</span><span class="' + col + '">' + (amt >= 0 ? '+' : '') + '$' + amt.toFixed(2) + '</span>';
-  d.insertBefore(div, d.firstChild);
-  if (d.children.length > 8) d.removeChild(d.lastChild);
+  if (trades.length === 0) {
+    d.innerHTML = '<div class="muted" style="text-align:center;padding:20px">No trades</div>';
+    return;
+  }
+  d.innerHTML = '';
+  for (var i = 0; i < Math.min(trades.length, 8); i++) {
+    var t = trades[i];
+    var col = parseFloat(t.pnl) >= 0 ? 'green' : 'red';
+    var div = document.createElement('div');
+    div.className = 'row';
+    div.innerHTML = '<span>' + t.type + '</span><span class="' + col + '">' + (parseFloat(t.pnl) >= 0 ? '+' : '') + '$' + t.pnl + '</span>';
+    d.appendChild(div);
+  }
+}
+
+function renderOrderbook() {
+  var d = document.getElementById('orderbook');
+  var lp = marketData[marketData.length - 1] ? marketData[marketData.length - 1].p : 50;
+  var bids = [lp-0.5,lp-1,lp-1.5];
+  var asks = [lp+0.5,lp+1,lp+1.5];
+  var html = '<div style="display:flex;gap:10px;font-size:10px;margin-bottom:8px">';
+  html += '<div style="flex:1"><div class="muted" style="text-align:center;margin-bottom:4px">BIDS</div>';
+  for (var i = 0; i < bids.length; i++) html += '<div class="row green">' + bids[i].toFixed(1) + 'c <span>' + Math.floor(10+Math.random()*50) + '</span></div>';
+  html += '</div><div style="flex:1"><div class="muted" style="text-align:center;margin-bottom:4px">ASKS</div>';
+  for (var i = 0; i < asks.length; i++) html += '<div class="row red">' + asks[i].toFixed(1) + 'c <span>' + Math.floor(10+Math.random()*50) + '</span></div>';
+  html += '</div></div>';
+  d.innerHTML = html;
 }
 
 function updateStats() {
@@ -242,6 +367,226 @@ function updateStats() {
     '<div class="row"><span>Market</span><span class="muted">' + config.mkt + '</span></div>';
 }
 
+// ==================== TRADING ENGINE ====================
+
+function simulate() {
+  if (marketData.length === 0) return;
+  var lp = marketData[marketData.length - 1].p;
+  var tr = Math.sin(Date.now() / 12000) * 0.4;
+  var ns = (Math.random() - 0.5) * 1.2;
+  var se = (sentiment.news + sentiment.social) * 0.15;
+  var chg = (tr + ns + se) / 100;
+  var np = Math.max(5, Math.min(95, lp * (1 + chg)));
+  
+  marketData.push({t: Date.now(), p: np});
+  if (marketData.length > 60) marketData.shift();
+  
+  checkPos(np);
+}
+
+function checkPos(price) {
+  positions = positions.filter(function(pos) {
+    var chg = ((price - pos.entry) / pos.entry) * 100;
+    var eff = pos.type === 'long' ? chg : -chg;
+    
+    if (eff <= -config.sl) {
+      var loss = -config.size * (config.sl / 100);
+      var fee = config.size * (config.fee / 100) * 2;
+      pnl += loss - fee; losses++;
+      logTrade('STOP', pos.entry, price, loss - fee, pos.agent);
+      return false;
+    }
+    if (eff >= config.tp) {
+      var profit = config.size * (config.tp / 100);
+      var fee = config.size * (config.fee / 100) * 2;
+      pnl += profit - fee; wins++;
+      logTrade('PROFIT', pos.entry, price, profit - fee, pos.agent);
+      return false;
+    }
+    if (Date.now() - pos.time > 12 * 60 * 1000) {
+      var pnl2 = (eff / 100) * config.size;
+      var fee = config.size * (config.fee / 100) * 2;
+      pnl += pnl2 - fee;
+      if (pnl2 > 0) wins++; else losses++;
+      logTrade('EXIT', pos.entry, price, pnl2 - fee, pos.agent);
+      return false;
+    }
+    return true;
+  });
+}
+
+function agentDecide() {
+  if (!trading) return;
+  var price = marketData[marketData.length - 1] ? marketData[marketData.length - 1].p : 50;
+  var tr = calcTrend();
+  var vol = calcVol();
+  
+  for (var i = 0; i < 6; i++) {
+    var idx = Math.floor(Math.random() * 100000);
+    var ag = agents[idx];
+    ag.intel = Math.min(1, ag.intel + 0.002);
+    
+    var dec = makeDecision(ag, tr, vol, price);
+    if (dec !== 'hold') {
+      ag.act = dec; ag.trades++;
+      var fee = config.size * (config.fee / 100);
+      ag.pnl -= fee;
+      
+      if (dec === 'buy') {
+        positions.push({type:'long',entry:price,size:config.size,time:Date.now(),agent:ag.name});
+        if (live && ws) placeOrder('yes', Math.floor(config.size / price), price);
+      } else if (dec === 'sell') {
+        positions.push({type:'short',entry:price,size:config.size,time:Date.now(),agent:ag.name});
+        if (live && ws) placeOrder('no', Math.floor(config.size / (100 - price)), 100 - price);
+      }
+    }
+  }
+  
+  setTimeout(function() {
+    for (var i = 0; i < agents.length; i++) {
+      if (Math.random() > 0.99) agents[i].act = 'hold';
+    }
+  }, 2000);
+}
+
+function calcTrend() { if (marketData.length < 8) return 0; var r = marketData.slice(-8); return ((r[r.length - 1].p - r[0].p) / r[0].p) * 100; }
+function calcVol() { if (marketData.length < 8) return 0; var p = marketData.slice(-8).map(function(d) { return d.p; }); var m = p.reduce(function(a, b) { return a + b; }, 0) / p.length; return Math.sqrt(p.reduce(function(a, b) { return a + Math.pow(b - m, 2); }, 0) / p.length) / m * 100; }
+
+function makeDecision(ag, tr, vol, price) {
+  var sig = Math.random();
+  var thr = 0.25 + ag.intel * 0.35;
+  var sb = (sentiment.news + sentiment.social + sentiment.chain) / 3 * 0.25;
+  
+  var bs = 0, ss = 0;
+  switch(ag.strat) {
+    case 'momentum': bs = tr > 0 ? Math.min(1, tr / 3 + sb) : 0; ss = tr < 0 ? Math.min(1, -tr / 3 - sb) : 0; break;
+    case 'meanrev': bs = tr < -1.5 ? 0.7 + sb : 0; ss = tr > 1.5 ? 0.7 - sb : 0; break;
+    case 'arbitrage': bs = vol < 0.8 && tr > 0 ? 0.5 + sb : 0; ss = vol < 0.8 && tr < 0 ? 0.5 - sb : 0; break;
+    case 'scalp': bs = vol > 1.5 && tr > 0 ? 0.8 + sb : 0; ss = vol > 1.5 && tr < 0 ? 0.8 - sb : 0; break;
+    case 'swing': bs = tr > 2 ? 0.9 + sb : 0; ss = tr < -2 ? 0.9 - sb : 0; break;
+    case 'sentiment': bs = sentiment.composite > 0.2 ? sentiment.composite : 0; ss = sentiment.composite < -0.2 ? -sentiment.composite : 0; break;
+    case 'ensemble': bs = (tr > 0 ? 0.25 : 0) + (sentiment.composite > 0 ? sentiment.composite * 0.35 : 0) + (vol < 1 ? 0.15 : 0); ss = (tr < 0 ? 0.25 : 0) + (sentiment.composite < 0 ? -sentiment.composite * 0.35 : 0) + (vol < 1 ? 0.15 : 0); break;
+  }
+  
+  bs *= ag.conf; ss *= ag.conf;
+  if (bs > thr && sig < bs) return 'buy';
+  if (ss > thr && sig < ss) return 'sell';
+  return 'hold';
+}
+
+function logTrade(type, entry, exit, pnlAmt, agent) {
+  var t = {type:type,entry:entry.toFixed(1),exit:exit.toFixed(1),pnl:pnlAmt.toFixed(2),ag:agent||'SYS',tm:new Date().toLocaleTimeString()};
+  trades.unshift(t); if (trades.length > 20) trades.pop();
+  renderTrades();
+}
+
+// ==================== API ====================
+
+function tryFetch(url, opts, to) {
+  return new Promise(function(resolve, reject) {
+    var ctrl = new AbortController();
+    var t = setTimeout(function() { ctrl.abort(); reject(new Error('timeout')); }, to || 3000);
+    fetch(url, Object.assign({}, opts || {}, {signal:ctrl.signal}))
+      .then(function(r) { clearTimeout(t); resolve(r); })
+      .catch(function(e) { clearTimeout(t); reject(e); });
+  });
+}
+
+function fetchFeeds() {
+  tryFetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', {}, 2500)
+    .then(function(r) { if (r.ok) { feeds.cg = true; return r.json(); } })
+    .then(function(d) { if (d && d.bitcoin && d.bitcoin.usd) { sentiment.chain = Math.max(-1, Math.min(1, ((d.bitcoin.usd / 65000) - 1) * 100 / 10)); } renderFeeds(); renderSentiment(); })
+    .catch(function() { feeds.cg = false; renderFeeds(); });
+  
+  tryFetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT', {}, 2500)
+    .then(function(r) { if (r.ok) { feeds.bn = true; renderFeeds(); } })
+    .catch(function() { feeds.bn = false; renderFeeds(); });
+  
+  tryFetch('https://xoomar.com/api/markets/sentiment/btc', {}, 2500)
+    .then(function(r) { if (r.ok) { feeds.xm = true; return r.json(); } })
+    .then(function(d) { if (d && d.data) { sentiment.news = parseFloat(d.data.newsScore) || 0; sentiment.social = parseFloat(d.data.crowdScore) || 0; } renderFeeds(); renderSentiment(); })
+    .catch(function() { feeds.xm = false; sentiment.news += (Math.random() - 0.5) * 0.1; sentiment.social += (Math.random() - 0.5) * 0.1; renderFeeds(); renderSentiment(); });
+  
+  tryFetch('https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=' + config.mkt + '&status=open&limit=3', {}, 3000)
+    .then(function(r) { if (r.ok) { feeds.ks = true; return r.json(); } })
+    .then(function(d) { if (d && d.markets && d.markets[0]) { var p = parseFloat(d.markets[0].last_price_dollars) * 100; if (p > 0 && p < 100) marketData[marketData.length - 1].p = p; } renderFeeds(); })
+    .catch(function() { feeds.ks = false; renderFeeds(); });
+}
+
+async function signRequest(method, path, body) {
+  if (!config.key || !config.keyId) return null;
+  try {
+    var timestamp = Math.floor(Date.now() / 1000).toString();
+    var msg = timestamp + method + path + (body ? JSON.stringify(body) : '');
+    var pem = config.key.replace('-----BEGIN RSA PRIVATE KEY-----', '').replace('-----END RSA PRIVATE KEY-----', '').replace(/\s/g, '');
+    var binary = atob(pem);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    var cryptoKey = await crypto.subtle.importKey('pkcs8', bytes.buffer, {name:'RSA-PSS', hash:'SHA-256'}, false, ['sign']);
+    var signature = await crypto.subtle.sign({name:'RSA-PSS', saltLength:32}, cryptoKey, new TextEncoder().encode(msg));
+    var sigBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(signature)));
+    return {timestamp:timestamp, signature:sigBase64};
+  } catch(e) { return null; }
+}
+
+async function placeOrder(side, count, price) {
+  var action = config.mode === 'demo' ? 'DEMO' : 'LIVE';
+  console.log(action + ' ORDER: ' + side + ' ' + count + ' @ ' + price.toFixed(1));
+  if (config.mode === 'demo') return;
+  
+  var base = config.mode === 'demo' ? 'https://external-api.demo.kalshi.co/trade-api/v2' : 'https://external-api.kalshi.com/trade-api/v2';
+  var path = '/portfolio/orders';
+  var body = {ticker:config.mkt, side:side, action:'buy', count:count, yes_price:Math.round(price), time_in_force:'good_till_canceled'};
+  
+  var sig = await signRequest('POST', path, body);
+  if (!sig) { console.log('SIGN FAILED'); config.mode = 'demo'; live = false; updateUI(); return; }
+  
+  try {
+    var res = await fetch(base + path, {
+      method:'POST',
+      headers:{'Content-Type':'application/json', 'KALSHI-ACCESS-KEY':config.keyId, 'KALSHI-ACCESS-TIMESTAMP':sig.timestamp, 'KALSHI-ACCESS-SIGNATURE':sig.signature},
+      body:JSON.stringify(body)
+    });
+    if (res.ok) { var data = await res.json(); console.log('ORDER FILLED'); return data; }
+    else { var err = await res.text(); console.log('ORDER FAILED: ' + err.substring(0,50)); }
+  } catch(e) { console.log('NETWORK ERROR: ' + e.message); }
+}
+
+function connectWS() {
+  if (ws) return;
+  var url = config.mode === 'demo' ? 'wss://external-api.demo.kalshi.co/trade-api/ws/v2' : 'wss://external-api.kalshi.com/trade-api/ws/v2';
+  try {
+    ws = new WebSocket(url);
+    ws.onopen = function() { console.log('WS connected'); };
+    ws.onmessage = function(e) { try { var m = JSON.parse(e.data); if (m.type === 'orderbook') renderOrderbook(); } catch(err) {} };
+    ws.onclose = function() { ws = null; };
+    ws.onerror = function() { ws = null; };
+  } catch(e) {}
+}
+
+// ==================== UI ====================
+
+function updateUI() {
+  var el = document.getElementById('pnl');
+  var txt = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
+  el.textContent = txt;
+  el.className = 'pnl' + (pnl < 0 ? ' red' : '');
+  
+  var e = Math.floor((Date.now() - startTime) / 1000);
+  var h = String(Math.floor(e / 3600)).padStart(2, '0');
+  var m = String(Math.floor((e % 3600) / 60)).padStart(2, '0');
+  var s = String(e % 60).padStart(2, '0');
+  
+  if (config.mkt.indexOf('15M') !== -1) {
+    var now = new Date();
+    var rm = 14 - (now.getMinutes() % 15);
+    var rs = 59 - now.getSeconds();
+    document.getElementById('countdown').textContent = String(rm).padStart(2, '0') + ':' + String(rs).padStart(2, '0');
+  } else { document.getElementById('countdown').textContent = '--:--'; }
+}
+
+// ==================== CONTROLS ====================
+
 function start() {
   trading = true;
   document.getElementById('status').textContent = config.mode === 'live' ? 'LIVE' : 'DEMO';
@@ -256,13 +601,27 @@ function stop() {
   document.getElementById('btnStart').textContent = 'START';
 }
 
+function syncData() {
+  fetchFeeds();
+  document.getElementById('status').textContent = 'SYNCING';
+  setTimeout(function() {
+    if (!trading) {
+      document.getElementById('status').textContent = 'OFFLINE';
+      document.getElementById('status').className = 'muted';
+    }
+  }, 1000);
+}
+
 function openCfg() {
   document.getElementById('cfgModal').classList.add('on');
   document.getElementById('inSL').value = config.sl;
   document.getElementById('inTP').value = config.tp;
   document.getElementById('inSize').value = config.size;
+  document.getElementById('inFee').value = config.fee;
   document.getElementById('inMode').value = config.mode;
   document.getElementById('inMkt').value = config.mkt;
+  document.getElementById('inKeyId').value = config.keyId;
+  document.getElementById('inKey').value = config.key;
 }
 
 function closeCfg() {
@@ -273,12 +632,18 @@ function saveCfg() {
   config.sl = parseFloat(document.getElementById('inSL').value) || 2.5;
   config.tp = parseFloat(document.getElementById('inTP').value) || 5.0;
   config.size = parseFloat(document.getElementById('inSize').value) || 100;
+  config.fee = parseFloat(document.getElementById('inFee').value) || 0.5;
   config.mode = document.getElementById('inMode').value;
   config.mkt = document.getElementById('inMkt').value;
   config.keyId = document.getElementById('inKeyId').value;
   config.key = document.getElementById('inKey').value;
   
+  live = config.mode === 'live';
+  
   updateStats();
+  renderMkts();
+  if (config.key) connectWS();
+  
   closeCfg();
   
   var status = document.getElementById('status');
@@ -292,10 +657,27 @@ function saveCfg() {
   }, 1000);
 }
 
-setInterval(tick, 2000);
-updatePnl();
+function selectMkt(m) {
+  config.mkt = m;
+  renderMkts();
+}
 
-window.onload = init;
+// ==================== LOOPS ====================
+
+function startLoops() {
+  setInterval(simulate, 3000);
+  setInterval(agentDecide, 2500);
+  setInterval(updateUI, 1000);
+  setInterval(drawChart, 100);
+  setInterval(renderAgents, 2000);
+  setInterval(fetchFeeds, 10000);
+}
+
+var lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) { var now = Date.now(); if (now - lastTouchEnd <= 300) e.preventDefault(); lastTouchEnd = now; }, false);
+document.body.style.overscrollBehavior = 'none';
+
+window.onload = function() { init(); startLoops(); };
 
 </script>
 
